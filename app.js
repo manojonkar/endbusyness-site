@@ -14,6 +14,7 @@ const topicCard = document.getElementById("topicCard");
 const qaSection = document.getElementById("qaSection");
 const exerciseSection = document.getElementById("exerciseSection");
 const recapSection = document.getElementById("recapSection");
+const certificateSection = document.getElementById("certificateSection");
 const learningNudge = document.getElementById("learningNudge");
 const chapterSearch = document.getElementById("chapterSearch");
 
@@ -37,7 +38,7 @@ JOURNEY_DATA.forEach((chapter, chapterIndex) => {
   chapter.topics.forEach((_, topicIndex) => TOPIC_INDEX.push({ chapterIndex, topicIndex }));
 });
 
-const defaultState = { current: 0, topicsDone: {}, answers: {}, exercises: {}, focusMode: false, search: "" };
+const defaultState = { current: 0, topicsDone: {}, answers: {}, exercises: {}, focusMode: false, search: "", testimonial: "" };
 let learner = null;
 let state = { ...defaultState };
 let voices = [];
@@ -101,6 +102,25 @@ function topicIsLearningReady(chapterIndex, topicIndex) {
   const answerCount = chapter.questions.filter((_q, i) => ((state.answers[keyFor(chapterIndex, topicIndex, "q", i)] || "").trim().length >= 20)).length;
   const exerciseDone = chapter.exercises.some((_e, i) => Boolean(state.exercises[keyFor(chapterIndex, topicIndex, "e-done", i)]));
   return { answerCount, answerTarget: chapter.questions.length, exerciseDone, ready: answerCount >= Math.min(1, chapter.questions.length) && exerciseDone };
+}
+
+function allExercisesDone() {
+  return TOPIC_INDEX.every(({ chapterIndex, topicIndex }) => {
+    const chapter = JOURNEY_DATA[chapterIndex];
+    return chapter.exercises.every((_e, i) => Boolean(state.exercises[keyFor(chapterIndex, topicIndex, "e-done", i)]));
+  });
+}
+
+function certificateStatus() {
+  const allTopicsDone = Object.keys(state.topicsDone).length === TOPIC_INDEX.length;
+  const exercisesDone = allExercisesDone();
+  const testimonialDone = (state.testimonial || "").trim().length >= 30;
+  return {
+    allTopicsDone,
+    exercisesDone,
+    testimonialDone,
+    ready: allTopicsDone && exercisesDone && testimonialDone
+  };
 }
 
 function renderSidebar() {
@@ -211,6 +231,86 @@ function renderRecap() {
   recapSection.innerHTML = `<h3>Chapter Recap</h3><div>${doneCount}/${chapter.topics.length} topics complete in this chapter.</div>${pending.length ? `<ul class="recap-list">${pending.map((p) => `<li>Topic ${p.i + 1}: ${p.t}</li>`).join("")}</ul>` : "<div class='done-mark'>All topics complete in this chapter.</div>"}`;
 }
 
+function escapeHtml(text) {
+  return String(text || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function buildCertificateHtml(profile) {
+  const date = new Date().toLocaleDateString();
+  return `<!doctype html>
+<html><head><meta charset="utf-8"><title>Certificate - KILL BUSYness Learning Journey</title>
+<style>
+body{font-family:Arial,sans-serif;background:#f6f8ff;padding:24px}
+.card{max-width:900px;margin:auto;background:#fff;border:2px solid #2b59d9;border-radius:14px;padding:34px;text-align:center}
+h1{margin:0;color:#2b59d9;font-size:38px} h2{margin:8px 0 18px;font-size:22px}
+.name{font-size:34px;font-weight:700;margin:10px 0}
+.sub{color:#4a5570;font-size:18px}
+.note{margin-top:16px;font-size:14px;color:#667}
+</style></head>
+<body><div class="card">
+<h1>CERTIFICATE OF COMPLETION</h1>
+<h2>KILL BUSYness Learning Journey</h2>
+<div class="sub">This certifies that</div>
+<div class="name">${escapeHtml(profile.name)}</div>
+<div class="sub">has successfully completed all chapters and exercises, and submitted a learning testimonial.</div>
+<div class="note">Date: ${escapeHtml(date)}</div>
+</div></body></html>`;
+}
+
+function downloadCertificate() {
+  const html = buildCertificateHtml(learner);
+  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "KILL_BUSYness_Certificate.html";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function renderCertificate() {
+  const status = certificateStatus();
+  certificateSection.innerHTML = `
+    <h3>Completion Certificate</h3>
+    <div class="certificate-rule">Certificate unlocks after all topics, all exercises, and one testimonial.</div>
+    <div class="${status.ready ? "certificate-ready" : "certificate-locked"}">
+      ${status.ready ? "Certificate unlocked." : "Certificate locked."}
+    </div>
+    <div class="topic-meta">
+      <span class="meta-chip">Topics complete: ${status.allTopicsDone ? "Yes" : "No"}</span>
+      <span class="meta-chip">All exercises done: ${status.exercisesDone ? "Yes" : "No"}</span>
+      <span class="meta-chip">Testimonial submitted: ${status.testimonialDone ? "Yes" : "No"}</span>
+    </div>
+    <label for="testimonialInput"><strong>Your testimonial</strong></label>
+    <textarea id="testimonialInput" rows="4" placeholder="Share your learning experience (minimum 30 characters).">${state.testimonial || ""}</textarea>
+    <div class="cert-actions">
+      <button id="saveTestimonialBtn" class="ghost">Save Testimonial</button>
+      <button id="downloadCertificateBtn" ${status.ready ? "" : "disabled"}>Download Certificate</button>
+    </div>
+  `;
+
+  const testimonialInput = document.getElementById("testimonialInput");
+  const saveTestimonialBtn = document.getElementById("saveTestimonialBtn");
+  const downloadCertificateBtn = document.getElementById("downloadCertificateBtn");
+
+  saveTestimonialBtn.addEventListener("click", () => {
+    state.testimonial = testimonialInput.value || "";
+    saveState();
+    renderCertificate();
+  });
+  downloadCertificateBtn.addEventListener("click", () => {
+    if (!certificateStatus().ready) return;
+    downloadCertificate();
+  });
+}
+
 function renderButtons() {
   prevTopicBtn.disabled = state.current === 0;
   nextTopicBtn.disabled = state.current === TOPIC_INDEX.length - 1;
@@ -258,6 +358,7 @@ function renderPortal() {
   renderQuestions();
   renderExercises();
   renderRecap();
+  renderCertificate();
   renderButtons();
 }
 
