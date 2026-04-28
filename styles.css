@@ -22,7 +22,7 @@ body {
   min-height: 100vh;
   display: grid;
   place-items: center;
-  padding: 20px;
+  padding: 0;
 }
 .landing-card, .register-card {
   width: min(680px, 96vw);
@@ -37,26 +37,35 @@ body {
   cursor: pointer;
 }
 .cover-look {
-  background: linear-gradient(180deg, #122c6a, #091739);
+  width: 100vw;
+  min-height: 100vh;
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  background: linear-gradient(180deg, #122c6a 0%, #0d2458 45%, #091739 100%);
   color: #fff;
-  border: 1px solid #2045a5;
 }
 .cover-overline {
-  margin: 0;
+  margin: 0 0 10px 0;
   letter-spacing: 1px;
-  font-size: 28px;
+  font-size: 36px;
   font-weight: 700;
   color: #8ec1ff;
 }
 .lion-emblem-img {
-  width: 170px;
+  width: 240px;
   height: auto;
-  margin-bottom: 8px;
+  margin-bottom: 18px;
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.25));
 }
 .cover-title {
-  margin: 8px 0 14px;
-  font-size: 46px;
+  margin: 0 0 26px;
+  font-size: 64px;
   line-height: 1.06;
   letter-spacing: 0.6px;
 }
@@ -85,15 +94,17 @@ body {
   font-size: 36px;
 }
 .tagline {
-  margin: 10px 0 4px;
-  font-size: 20px;
+  margin: 0 0 18px;
+  font-size: 26px;
   color: #d8e5ff;
+  max-width: 980px;
 }
-.tagline-sub { margin: 0; color: #b4c9f4; }
+.tagline-sub { margin: 0 0 8px 0; color: #b4c9f4; font-size: 20px; }
 .enter-hint {
-  margin-top: 16px;
+  margin-top: 30px;
   color: #ffffff;
   font-weight: 700;
+  font-size: 18px;
 }
 .register-card h2 { margin-top: 0; }
 .register-card form { display: grid; gap: 8px; }
