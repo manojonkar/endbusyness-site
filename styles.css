@@ -48,9 +48,9 @@ body {
   font-weight: 700;
   color: #8ec1ff;
 }
-.lion-emblem {
-  font-size: 60px;
-  line-height: 1;
+.lion-emblem-img {
+  width: 170px;
+  height: auto;
   margin-bottom: 8px;
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.25));
 }
