@@ -1,5 +1,24 @@
 const JOURNEY_DATA = [
   {
+    chapter: 0,
+    title: "Introduction: Reinventing Management",
+    pdf: "./chapters/chapter_00_introduction_reinventing_management.pdf",
+    audio: "./audio/chapter_00_intro.mp3",
+    topics: [
+      "Understand the shift from extractive management to regenerative leadership.",
+      "Learn the ROAR foundation: Reflect, Own, Assert, Run.",
+      "Recognize how BUSYness patterns block meaningful performance."
+    ],
+    questions: [
+      "Which inherited management assumption is hurting your team's growth the most?",
+      "Where can you replace activity pressure with purpose-led performance?"
+    ],
+    exercises: [
+      "List three extractive habits currently present in your team culture.",
+      "Define one regenerative behavior you will practice over the next 30 days."
+    ]
+  },
+  {
     chapter: 1,
     title: "The BUSYness Mirror",
     pdf: "./chapters/chapter_01_the_busyness_mirror.pdf",

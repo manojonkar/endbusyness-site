@@ -1,4 +1,10 @@
 window.KB_CONFIG = window.KB_CONFIG || {
   supabaseUrl: "",
-  supabaseAnonKey: ""
+  supabaseAnonKey: "",
+  links: {
+    amazonPrint: "#",
+    amazonEbook: "#",
+    audiobook: "#",
+    websiteStore: "#"
+  }
 };

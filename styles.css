@@ -36,6 +36,24 @@ body {
   text-align: center;
   cursor: pointer;
 }
+.cover-look {
+  background: linear-gradient(180deg, #122c6a, #091739);
+  color: #fff;
+  border: 1px solid #2045a5;
+}
+.cover-overline {
+  margin: 0;
+  letter-spacing: 1px;
+  font-size: 28px;
+  font-weight: 700;
+  color: #8ec1ff;
+}
+.cover-title {
+  margin: 8px 0 14px;
+  font-size: 46px;
+  line-height: 1.06;
+  letter-spacing: 0.6px;
+}
 .emblem {
   display: grid;
   place-items: center;
@@ -62,13 +80,13 @@ body {
 }
 .tagline {
   margin: 10px 0 4px;
-  font-size: 22px;
-  color: #2b3f75;
+  font-size: 20px;
+  color: #d8e5ff;
 }
-.tagline-sub { margin: 0; color: var(--muted); }
+.tagline-sub { margin: 0; color: #b4c9f4; }
 .enter-hint {
   margin-top: 16px;
-  color: var(--accent);
+  color: #ffffff;
   font-weight: 700;
 }
 .register-card h2 { margin-top: 0; }

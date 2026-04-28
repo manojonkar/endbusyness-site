@@ -139,6 +139,21 @@ function t(key) {
   return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key;
 }
 
+function localizedChapter(chapterIndex) {
+  const base = JOURNEY_DATA[chapterIndex];
+  if ((state.language || "en") !== "hi") return base;
+  const map = (window.HI_TRANSLATIONS || []).find((x) => x.chapter === base.chapter);
+  if (!map) return base;
+  return {
+    ...base,
+    title: map.title || base.title,
+    topics: map.topics || base.topics,
+    questions: map.questions || base.questions,
+    exercises: map.exercises || base.exercises,
+    audio: map.audio || base.audio
+  };
+}
+
 function storageKeyForLearner(profile) {
   const id = `${profile.email}`.toLowerCase().trim() + "|" + `${profile.phone}`.replace(/\s+/g, "");
   return `kb-progress-${id}`;
@@ -337,7 +352,7 @@ function renderStats() {
 
 function renderTopic() {
   const { chapterIndex, topicIndex } = activePointers();
-  const chapter = JOURNEY_DATA[chapterIndex];
+  const chapter = localizedChapter(chapterIndex);
   const topic = chapter.topics[topicIndex];
   const isDone = Boolean(state.topicsDone[`${chapterIndex}:${topicIndex}`]);
   const readiness = topicIsLearningReady(chapterIndex, topicIndex);
@@ -347,7 +362,7 @@ function renderTopic() {
 
 function renderQuestions() {
   const { chapterIndex, topicIndex } = activePointers();
-  const chapter = JOURNEY_DATA[chapterIndex];
+  const chapter = localizedChapter(chapterIndex);
   qaSection.innerHTML = "<h3>Reflection Questions</h3>";
   chapter.questions.forEach((q, i) => {
     const node = questionTemplate.content.firstElementChild.cloneNode(true);
@@ -366,7 +381,7 @@ function renderQuestions() {
 
 function renderExercises() {
   const { chapterIndex, topicIndex } = activePointers();
-  const chapter = JOURNEY_DATA[chapterIndex];
+  const chapter = localizedChapter(chapterIndex);
   exerciseSection.innerHTML = "<h3>Exercises</h3>";
   chapter.exercises.forEach((item, i) => {
     const node = exerciseTemplate.content.firstElementChild.cloneNode(true);
@@ -507,7 +522,7 @@ function renderButtons() {
 
 function audioScript() {
   const { chapterIndex, topicIndex } = activePointers();
-  const chapter = JOURNEY_DATA[chapterIndex];
+  const chapter = localizedChapter(chapterIndex);
   const topic = chapter.topics[topicIndex];
   const lang = state.language || "en";
   if (lang === "hi") {
