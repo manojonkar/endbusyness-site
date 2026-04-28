@@ -45,6 +45,10 @@
       <p>Study in bite-sized topics, answer questions, and complete exercises.</p>
     </div>
     <div class="top-actions">
+      <select id="languageSelect" class="lang-select">
+        <option value="en">English</option>
+        <option value="hi">Hindi</option>
+      </select>
       <span id="learnerBadge" class="learner-badge"></span>
       <button id="focusBtn" class="ghost">Focus Mode</button>
       <button id="resetBtn" class="ghost">Reset Progress</button>
@@ -62,6 +66,7 @@
       <div class="portal-tabs">
         <button id="tabLearning" class="ghost">Learning Journey</button>
         <button id="tabSharing" class="ghost">Readers Sharing</button>
+        <button id="tabHub" class="ghost">HUB Builder</button>
       </div>
       <div id="journeyStats" class="stats"></div>
       <div id="learningNudge" class="learning-nudge"></div>
@@ -107,6 +112,76 @@
           <button id="postStoryBtn" type="submit">Post Story</button>
         </form>
         <div id="storyList" class="story-list"></div>
+      </section>
+      <section id="hubSection" class="panel-lite hub-section hidden">
+        <h3>HUB Builder (Company / Community)</h3>
+        <p>Start reading-and-discussion hubs inside your company or outside as an open learning circle.</p>
+
+        <h4>Create a HUB</h4>
+        <form id="hubForm">
+          <label for="hubName">HUB name</label>
+          <input id="hubName" type="text" placeholder="e.g., KILL BUSYness Bangalore Circle">
+          <label for="hubType">HUB type</label>
+          <select id="hubType">
+            <option value="company">Company HUB</option>
+            <option value="community">Community HUB</option>
+          </select>
+          <label for="hubCadence">Reading cadence</label>
+          <select id="hubCadence">
+            <option value="weekly">Weekly</option>
+            <option value="biweekly">Bi-weekly</option>
+            <option value="monthly">Monthly</option>
+          </select>
+          <label for="hubGoal">90-day HUB goal</label>
+          <textarea id="hubGoal" rows="3" placeholder="What transformation should your HUB create?"></textarea>
+          <button type="submit">Save HUB Plan</button>
+        </form>
+        <div id="hubList" class="story-list"></div>
+
+        <h4>Reading & Discussion Playbook</h4>
+        <ol class="playbook-list">
+          <li>Assign one chapter per cycle and ask members to complete exercises before discussion.</li>
+          <li>Run a 45-minute session: 10 min recap, 20 min discussion, 10 min commitments, 5 min reflection logs.</li>
+          <li>Capture one insight, one real story, and one commitment from each member every session.</li>
+          <li>Review progress every 30 days using diagnostics below.</li>
+        </ol>
+
+        <h4>Discussion Diagnostics</h4>
+        <form id="diagnosticForm">
+          <label>1) Participation consistency (1-5)</label>
+          <input id="diagParticipation" type="number" min="1" max="5" value="3">
+          <label>2) Depth of discussion (1-5)</label>
+          <input id="diagDepth" type="number" min="1" max="5" value="3">
+          <label>3) Action follow-through (1-5)</label>
+          <input id="diagAction" type="number" min="1" max="5" value="3">
+          <label>4) Culture shift observed (1-5)</label>
+          <input id="diagCulture" type="number" min="1" max="5" value="3">
+          <button type="submit">Run Diagnostic</button>
+        </form>
+        <div id="diagnosticResult" class="learning-nudge"></div>
+      </section>
+      <section id="recommendSection" class="panel-lite recommend-section hidden">
+        <h3>Recommend & Gift the Book</h3>
+        <p>Nominate people, tag decision-makers, and share the book in multiple formats.</p>
+        <form id="recommendForm">
+          <label for="recName">Person name</label>
+          <input id="recName" type="text" placeholder="Who should read this next?">
+          <label for="recHandle">Tag / handle / email</label>
+          <input id="recHandle" type="text" placeholder="@name or email">
+          <label for="recReason">Why recommend?</label>
+          <textarea id="recReason" rows="3" placeholder="What value will they gain?"></textarea>
+          <button type="submit">Add Recommendation</button>
+        </form>
+        <div id="recommendList" class="story-list"></div>
+
+        <h4>Buy / Gift Links</h4>
+        <div class="topic-meta">
+          <a class="meta-chip" href="#" id="linkAmazonPrint">Amazon Print</a>
+          <a class="meta-chip" href="#" id="linkAmazonEbook">Amazon eBook</a>
+          <a class="meta-chip" href="#" id="linkAudioBook">Audiobook</a>
+          <a class="meta-chip" href="#" id="linkWebsiteStore">Official Website Store</a>
+        </div>
+        <p class="story-meta">Update these links in `config.js` once your live listings are available.</p>
       </section>
       <div class="actions">
         <button id="prevTopic">Previous Topic</button>

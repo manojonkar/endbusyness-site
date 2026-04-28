@@ -99,6 +99,12 @@ body {
 .topbar h1 { margin: 0 0 6px; font-size: 24px; }
 .topbar p { margin: 0; color: var(--muted); }
 .top-actions { display: flex; gap: 8px; }
+.lang-select {
+  border: 1px solid #cfd8ea;
+  border-radius: 8px;
+  padding: 6px 8px;
+  background: #fff;
+}
 .learner-badge {
   display: inline-flex;
   align-items: center;
@@ -346,6 +352,31 @@ button:disabled {
   display: grid;
   gap: 8px;
   margin-bottom: 12px;
+}
+.hub-section form {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.recommend-section form {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.recommend-section input {
+  border: 1px solid #cfd8ea;
+  border-radius: 8px;
+  padding: 9px;
+}
+.hub-section input, .hub-section select {
+  border: 1px solid #cfd8ea;
+  border-radius: 8px;
+  padding: 9px;
+}
+.playbook-list {
+  margin-top: 8px;
+  padding-left: 20px;
+  color: #2b3f75;
 }
 .sharing-section input, .sharing-section select {
   border: 1px solid #cfd8ea;

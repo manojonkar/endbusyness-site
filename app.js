@@ -7,6 +7,7 @@ const enterPortalCard = document.getElementById("enterPortalCard");
 const registerForm = document.getElementById("registerForm");
 const registerError = document.getElementById("registerError");
 const learnerBadge = document.getElementById("learnerBadge");
+const languageSelect = document.getElementById("languageSelect");
 
 const chapterList = document.getElementById("chapterList");
 const journeyStats = document.getElementById("journeyStats");
@@ -19,7 +20,10 @@ const learningNudge = document.getElementById("learningNudge");
 const chapterSearch = document.getElementById("chapterSearch");
 const tabLearning = document.getElementById("tabLearning");
 const tabSharing = document.getElementById("tabSharing");
+const tabHub = document.getElementById("tabHub");
 const sharingSection = document.getElementById("sharingSection");
+const hubSection = document.getElementById("hubSection");
+const recommendSection = document.getElementById("recommendSection");
 const storyForm = document.getElementById("storyForm");
 const storyList = document.getElementById("storyList");
 const storyChapter = document.getElementById("storyChapter");
@@ -28,6 +32,27 @@ const storyRole = document.getElementById("storyRole");
 const storyInsight = document.getElementById("storyInsight");
 const storyText = document.getElementById("storyText");
 const storyPhoto = document.getElementById("storyPhoto");
+const hubForm = document.getElementById("hubForm");
+const hubName = document.getElementById("hubName");
+const hubType = document.getElementById("hubType");
+const hubCadence = document.getElementById("hubCadence");
+const hubGoal = document.getElementById("hubGoal");
+const hubList = document.getElementById("hubList");
+const diagnosticForm = document.getElementById("diagnosticForm");
+const diagParticipation = document.getElementById("diagParticipation");
+const diagDepth = document.getElementById("diagDepth");
+const diagAction = document.getElementById("diagAction");
+const diagCulture = document.getElementById("diagCulture");
+const diagnosticResult = document.getElementById("diagnosticResult");
+const recommendForm = document.getElementById("recommendForm");
+const recName = document.getElementById("recName");
+const recHandle = document.getElementById("recHandle");
+const recReason = document.getElementById("recReason");
+const recommendList = document.getElementById("recommendList");
+const linkAmazonPrint = document.getElementById("linkAmazonPrint");
+const linkAmazonEbook = document.getElementById("linkAmazonEbook");
+const linkAudioBook = document.getElementById("linkAudioBook");
+const linkWebsiteStore = document.getElementById("linkWebsiteStore");
 
 const prevTopicBtn = document.getElementById("prevTopic");
 const nextTopicBtn = document.getElementById("nextTopic");
@@ -49,7 +74,7 @@ JOURNEY_DATA.forEach((chapter, chapterIndex) => {
   chapter.topics.forEach((_, topicIndex) => TOPIC_INDEX.push({ chapterIndex, topicIndex }));
 });
 
-const defaultState = { current: 0, topicsDone: {}, answers: {}, exercises: {}, focusMode: false, search: "", testimonial: "", activeTab: "learning", stories: [], activityDays: [] };
+const defaultState = { current: 0, topicsDone: {}, answers: {}, exercises: {}, focusMode: false, search: "", testimonial: "", activeTab: "learning", stories: [], hubs: [], diagnostics: [], recommendations: [], activityDays: [], language: "en" };
 let learner = null;
 let state = { ...defaultState };
 let voices = [];
@@ -70,6 +95,48 @@ function initCloud() {
 
 function cloudReady() {
   return Boolean(cloudClient);
+}
+
+const I18N = {
+  en: {
+    learningTab: "Learning Journey",
+    sharingTab: "Readers Sharing",
+    hubTab: "HUB Builder",
+    focusMode: "Focus Mode",
+    exitFocus: "Exit Focus",
+    resetProgress: "Reset Progress",
+    prev: "Previous Topic",
+    next: "Next Topic",
+    complete: "Complete Topic",
+    completed: "Topic Completed",
+    cloudOn: "On",
+    cloudOff: "Local only",
+    cloudLabel: "Cloud Sync",
+    buyGift: "Recommend & Gift the Book",
+    langNote: "Chapter PDFs/MP3 are currently in English. Hindi assets can be plugged in when available."
+  },
+  hi: {
+    learningTab: "लर्निंग जर्नी",
+    sharingTab: "रीडर्स शेयरिंग",
+    hubTab: "हब बिल्डर",
+    focusMode: "फोकस मोड",
+    exitFocus: "फोकस बंद करें",
+    resetProgress: "प्रगति रीसेट करें",
+    prev: "पिछला टॉपिक",
+    next: "अगला टॉपिक",
+    complete: "टॉपिक पूरा करें",
+    completed: "टॉपिक पूरा हुआ",
+    cloudOn: "चालू",
+    cloudOff: "सिर्फ लोकल",
+    cloudLabel: "क्लाउड सिंक",
+    buyGift: "बुक रिकमेंड और गिफ्ट करें",
+    langNote: "चैप्टर PDF/MP3 अभी अंग्रेजी में हैं। हिंदी सामग्री उपलब्ध होते ही जोड़ी जाएगी।"
+  }
+};
+
+function t(key) {
+  const lang = state.language || "en";
+  return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key;
 }
 
 function storageKeyForLearner(profile) {
@@ -265,7 +332,7 @@ function renderStats() {
   const chaptersComplete = JOURNEY_DATA.filter((_c, i) => isChapterComplete(i)).length;
   const g = calcGamification();
   const streak = calcStreak();
-  journeyStats.innerHTML = `<div class="stat-chip">Progress: ${completed}/${totalTopics} topics</div><div class="stat-chip">Completion: ${pct}%</div><div class="stat-chip">Chapters complete: ${chaptersComplete}/${JOURNEY_DATA.length}</div><div class="stat-chip">XP: ${g.xp}</div><div class="stat-chip">Level: ${g.level}</div><div class="stat-chip">Streak: ${streak} day(s)</div><div class="stat-chip">Badges: ${g.badges.length ? g.badges.join(", ") : "Earn your first badge"}</div><div class="stat-chip">Cloud Sync: ${cloudReady() ? "On" : "Local only"}</div><div class="progress-wrap"><div class="progress-bar" style="width:${pct}%"></div></div>`;
+  journeyStats.innerHTML = `<div class="stat-chip">Progress: ${completed}/${totalTopics} topics</div><div class="stat-chip">Completion: ${pct}%</div><div class="stat-chip">Chapters complete: ${chaptersComplete}/${JOURNEY_DATA.length}</div><div class="stat-chip">XP: ${g.xp}</div><div class="stat-chip">Level: ${g.level}</div><div class="stat-chip">Streak: ${streak} day(s)</div><div class="stat-chip">Badges: ${g.badges.length ? g.badges.join(", ") : "Earn your first badge"}</div><div class="stat-chip">${t("cloudLabel")}: ${cloudReady() ? t("cloudOn") : t("cloudOff")}</div><div class="progress-wrap"><div class="progress-bar" style="width:${pct}%"></div></div>`;
 }
 
 function renderTopic() {
@@ -274,7 +341,7 @@ function renderTopic() {
   const topic = chapter.topics[topicIndex];
   const isDone = Boolean(state.topicsDone[`${chapterIndex}:${topicIndex}`]);
   const readiness = topicIsLearningReady(chapterIndex, topicIndex);
-  topicCard.innerHTML = `<h2>Topic ${topicIndex + 1}: ${topic}</h2><div class="chapter-tag">Chapter ${chapter.chapter}: ${chapter.title}</div><p><a href="${chapter.pdf}" target="_blank" rel="noopener">Open chapter reading PDF</a></p><div class="topic-meta"><span class="meta-chip">Reflect answers: ${readiness.answerCount}/${readiness.answerTarget}</span><span class="meta-chip">Exercise: ${readiness.exerciseDone ? "Done" : "Pending"}</span><span class="meta-chip">Audio: ${chapter.audio ? "Available" : "Not available"}</span></div>${isDone ? '<div class="done-mark">This topic is complete.</div>' : ""}${!readiness.ready ? '<div class="rule-note">To complete this topic: submit at least one reflection answer and mark one exercise complete.</div>' : ""}`;
+  topicCard.innerHTML = `<h2>Topic ${topicIndex + 1}: ${topic}</h2><div class="chapter-tag">Chapter ${chapter.chapter}: ${chapter.title}</div><p><a href="${chapter.pdf}" target="_blank" rel="noopener">Open chapter reading PDF</a></p><div class="topic-meta"><span class="meta-chip">Reflect answers: ${readiness.answerCount}/${readiness.answerTarget}</span><span class="meta-chip">Exercise: ${readiness.exerciseDone ? "Done" : "Pending"}</span><span class="meta-chip">Audio: ${chapter.audio ? "Available" : "Not available"}</span></div>${isDone ? '<div class="done-mark">This topic is complete.</div>' : ""}${!readiness.ready ? '<div class="rule-note">To complete this topic: submit at least one reflection answer and mark one exercise complete.</div>' : ""}<div class="story-meta">${t("langNote")}</div>`;
   if (audioPlayer && chapter.audio) audioPlayer.src = chapter.audio;
 }
 
@@ -435,13 +502,17 @@ function renderButtons() {
   const { chapterIndex, topicIndex } = activePointers();
   const ready = topicIsLearningReady(chapterIndex, topicIndex).ready;
   markDoneBtn.disabled = !ready && !state.topicsDone[`${chapterIndex}:${topicIndex}`];
-  markDoneBtn.textContent = state.topicsDone[`${chapterIndex}:${topicIndex}`] ? "Topic Completed" : "Complete Topic";
+  markDoneBtn.textContent = state.topicsDone[`${chapterIndex}:${topicIndex}`] ? t("completed") : t("complete");
 }
 
 function audioScript() {
   const { chapterIndex, topicIndex } = activePointers();
   const chapter = JOURNEY_DATA[chapterIndex];
   const topic = chapter.topics[topicIndex];
+  const lang = state.language || "en";
+  if (lang === "hi") {
+    return `अध्याय ${chapter.chapter}. ${chapter.title}. टॉपिक ${topicIndex + 1}. ${topic}.`;
+  }
   return `Chapter ${chapter.chapter}. ${chapter.title}. Topic ${topicIndex + 1}. ${topic}.`;
 }
 
@@ -467,8 +538,15 @@ function loadVoices() {
 function renderPortal() {
   document.body.classList.toggle("focus-mode", Boolean(state.focusMode));
   chapterSearch.value = state.search || "";
+  languageSelect.value = state.language || "en";
   learnerBadge.textContent = learner ? `${learner.name} | ${learner.email}` : "";
-  focusBtn.textContent = state.focusMode ? "Exit Focus" : "Focus Mode";
+  focusBtn.textContent = state.focusMode ? t("exitFocus") : t("focusMode");
+  resetBtn.textContent = t("resetProgress");
+  prevTopicBtn.textContent = t("prev");
+  nextTopicBtn.textContent = t("next");
+  tabLearning.textContent = t("learningTab");
+  tabSharing.textContent = t("sharingTab");
+  tabHub.textContent = t("hubTab");
   renderSidebar();
   renderStats();
   renderTopic();
@@ -479,11 +557,15 @@ function renderPortal() {
   renderCertificate();
   renderButtons();
   renderStories();
+  renderHubs();
   tabLearning.classList.toggle("active-tab", state.activeTab === "learning");
   tabSharing.classList.toggle("active-tab", state.activeTab === "sharing");
+  tabHub.classList.toggle("active-tab", state.activeTab === "hub");
   const learningOnly = document.querySelectorAll(".learning-only");
   learningOnly.forEach((el) => el.classList.toggle("hidden", state.activeTab !== "learning"));
   sharingSection.classList.toggle("hidden", state.activeTab !== "sharing");
+  hubSection.classList.toggle("hidden", state.activeTab !== "hub");
+  recommendSection.classList.toggle("hidden", state.activeTab !== "hub");
 }
 
 async function bootPortal() {
@@ -589,8 +671,15 @@ playAudioBtn.addEventListener("click", () => {
   const utter = new SpeechSynthesisUtterance(audioScript());
   const idx = Number(voiceSelect.value || 0);
   if (voices[idx]) utter.voice = voices[idx];
+  utter.lang = state.language === "hi" ? "hi-IN" : "en-US";
   utter.rate = Number(rateSelect.value || 1);
   window.speechSynthesis.speak(utter);
+});
+
+languageSelect.addEventListener("change", () => {
+  state.language = languageSelect.value || "en";
+  saveState();
+  renderPortal();
 });
 
 pauseAudioBtn.addEventListener("click", () => {
@@ -613,6 +702,11 @@ tabSharing.addEventListener("click", () => {
   saveState();
   renderPortal();
 });
+tabHub.addEventListener("click", () => {
+  state.activeTab = "hub";
+  saveState();
+  renderPortal();
+});
 
 JOURNEY_DATA.forEach((ch) => {
   const opt = document.createElement("option");
@@ -632,6 +726,43 @@ function renderStories() {
     .reverse()
     .map((s) => `<article class="story-card">${s.photo ? `<img class="story-photo" src="${s.photo}" alt="Reader photo">` : ""}<div class="story-meta">Chapter ${s.chapter} | ${escapeHtml(s.company || "Individual")} | ${escapeHtml(s.role || "Learner")}</div><strong>${escapeHtml(s.insight)}</strong><p>${escapeHtml(s.story)}</p><div class="story-meta">By ${escapeHtml(s.name)} on ${escapeHtml(s.date || s.created_at || "")}</div></article>`)
     .join("");
+}
+
+function renderHubs() {
+  const hubs = state.hubs || [];
+  if (!hubs.length) {
+    hubList.innerHTML = "<div class='story-meta'>No HUB plans yet. Create your first HUB.</div>";
+  } else {
+    hubList.innerHTML = hubs
+      .slice()
+      .reverse()
+      .map((h) => `<article class="story-card"><strong>${escapeHtml(h.name)}</strong><div class="story-meta">${escapeHtml(h.type)} | ${escapeHtml(h.cadence)} | ${escapeHtml(h.date)}</div><p>${escapeHtml(h.goal)}</p></article>`)
+      .join("");
+  }
+
+  const last = (state.diagnostics || []).at(-1);
+  if (!last) {
+    diagnosticResult.textContent = "Run a diagnostic to assess reading and discussion quality.";
+  } else {
+    diagnosticResult.textContent = `Latest Diagnostic Score: ${last.score}/20 | ${last.label} | ${last.date}`;
+  }
+
+  const recs = state.recommendations || [];
+  if (!recs.length) {
+    recommendList.innerHTML = "<div class='story-meta'>No recommendations yet.</div>";
+  } else {
+    recommendList.innerHTML = recs
+      .slice()
+      .reverse()
+      .map((r) => `<article class="story-card"><strong>${escapeHtml(r.name)}</strong><div class="story-meta">${escapeHtml(r.handle || "No tag")} | ${escapeHtml(r.date)}</div><p>${escapeHtml(r.reason)}</p></article>`)
+      .join("");
+  }
+
+  const links = (window.KB_CONFIG && window.KB_CONFIG.links) || {};
+  linkAmazonPrint.href = links.amazonPrint || "#";
+  linkAmazonEbook.href = links.amazonEbook || "#";
+  linkAudioBook.href = links.audiobook || "#";
+  linkWebsiteStore.href = links.websiteStore || "#";
 }
 
 storyForm.addEventListener("submit", async (e) => {
@@ -678,6 +809,72 @@ storyForm.addEventListener("submit", async (e) => {
     await post(String(reader.result || ""));
   };
   reader.readAsDataURL(file);
+});
+
+hubForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const name = (hubName.value || "").trim();
+  const goal = (hubGoal.value || "").trim();
+  if (!name || goal.length < 20) {
+    alert("Please add HUB name and a meaningful 90-day goal.");
+    return;
+  }
+  state.hubs.push({
+    name,
+    type: hubType.value || "company",
+    cadence: hubCadence.value || "weekly",
+    goal,
+    date: new Date().toLocaleDateString()
+  });
+  markActivity();
+  saveState();
+  hubForm.reset();
+  renderHubs();
+  state.activeTab = "hub";
+  renderPortal();
+});
+
+diagnosticForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const values = [
+    Number(diagParticipation.value || 0),
+    Number(diagDepth.value || 0),
+    Number(diagAction.value || 0),
+    Number(diagCulture.value || 0)
+  ];
+  if (values.some((v) => v < 1 || v > 5)) {
+    alert("Please use scores from 1 to 5.");
+    return;
+  }
+  const score = values.reduce((a, b) => a + b, 0);
+  let label = "Needs reset";
+  if (score >= 17) label = "High impact reading culture";
+  else if (score >= 13) label = "Growing momentum";
+  else if (score >= 9) label = "Foundational stage";
+  state.diagnostics.push({ score, label, date: new Date().toLocaleDateString() });
+  markActivity();
+  saveState();
+  renderHubs();
+});
+
+recommendForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const name = (recName.value || "").trim();
+  const reason = (recReason.value || "").trim();
+  if (!name || reason.length < 12) {
+    alert("Please enter a name and a meaningful recommendation reason.");
+    return;
+  }
+  state.recommendations.push({
+    name,
+    handle: (recHandle.value || "").trim(),
+    reason,
+    date: new Date().toLocaleDateString()
+  });
+  markActivity();
+  saveState();
+  recommendForm.reset();
+  renderHubs();
 });
 
 if ("speechSynthesis" in window) window.speechSynthesis.onvoiceschanged = loadVoices;
