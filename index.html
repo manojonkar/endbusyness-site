@@ -59,10 +59,14 @@
     </aside>
 
     <section class="panel content-panel">
+      <div class="portal-tabs">
+        <button id="tabLearning" class="ghost">Learning Journey</button>
+        <button id="tabSharing" class="ghost">Readers Sharing</button>
+      </div>
       <div id="journeyStats" class="stats"></div>
       <div id="learningNudge" class="learning-nudge"></div>
       <article id="topicCard" class="topic-card"></article>
-      <section class="panel-lite audio-panel">
+      <section id="audioSection" class="panel-lite audio-panel learning-only">
         <h3>Audio Lesson</h3>
         <audio id="audioPlayer" controls preload="none"></audio>
         <div class="audio-controls">
@@ -80,10 +84,30 @@
           <button id="stopAudio" class="ghost">Stop</button>
         </div>
       </section>
-      <section id="qaSection" class="qa-section"></section>
-      <section id="exerciseSection" class="exercise-section"></section>
-      <section id="recapSection" class="panel-lite recap-section"></section>
-      <section id="certificateSection" class="panel-lite certificate-section"></section>
+      <section id="qaSection" class="qa-section learning-only"></section>
+      <section id="exerciseSection" class="exercise-section learning-only"></section>
+      <section id="recapSection" class="panel-lite recap-section learning-only"></section>
+      <section id="certificateSection" class="panel-lite certificate-section learning-only"></section>
+      <section id="sharingSection" class="panel-lite sharing-section hidden">
+        <h3>Readers Sharing</h3>
+        <p>Share your chapter insights, real stories, and practical lessons for other readers.</p>
+        <form id="storyForm">
+          <label for="storyChapter">Chapter</label>
+          <select id="storyChapter"></select>
+          <label for="storyCompany">Company</label>
+          <input id="storyCompany" type="text" placeholder="Your company name">
+          <label for="storyRole">Role</label>
+          <input id="storyRole" type="text" placeholder="Your role/designation">
+          <label for="storyInsight">Key insight</label>
+          <input id="storyInsight" type="text" placeholder="One-line key insight">
+          <label for="storyText">Real-life story</label>
+          <textarea id="storyText" rows="4" placeholder="What changed after applying this chapter?"></textarea>
+          <label for="storyPhoto">Photo (optional)</label>
+          <input id="storyPhoto" type="file" accept="image/*">
+          <button id="postStoryBtn" type="submit">Post Story</button>
+        </form>
+        <div id="storyList" class="story-list"></div>
+      </section>
       <div class="actions">
         <button id="prevTopic">Previous Topic</button>
         <button id="markTopicDone">Complete Topic</button>

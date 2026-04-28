@@ -17,6 +17,17 @@ const recapSection = document.getElementById("recapSection");
 const certificateSection = document.getElementById("certificateSection");
 const learningNudge = document.getElementById("learningNudge");
 const chapterSearch = document.getElementById("chapterSearch");
+const tabLearning = document.getElementById("tabLearning");
+const tabSharing = document.getElementById("tabSharing");
+const sharingSection = document.getElementById("sharingSection");
+const storyForm = document.getElementById("storyForm");
+const storyList = document.getElementById("storyList");
+const storyChapter = document.getElementById("storyChapter");
+const storyCompany = document.getElementById("storyCompany");
+const storyRole = document.getElementById("storyRole");
+const storyInsight = document.getElementById("storyInsight");
+const storyText = document.getElementById("storyText");
+const storyPhoto = document.getElementById("storyPhoto");
 
 const prevTopicBtn = document.getElementById("prevTopic");
 const nextTopicBtn = document.getElementById("nextTopic");
@@ -38,7 +49,7 @@ JOURNEY_DATA.forEach((chapter, chapterIndex) => {
   chapter.topics.forEach((_, topicIndex) => TOPIC_INDEX.push({ chapterIndex, topicIndex }));
 });
 
-const defaultState = { current: 0, topicsDone: {}, answers: {}, exercises: {}, focusMode: false, search: "", testimonial: "" };
+const defaultState = { current: 0, topicsDone: {}, answers: {}, exercises: {}, focusMode: false, search: "", testimonial: "", activeTab: "learning", stories: [], activityDays: [] };
 let learner = null;
 let state = { ...defaultState };
 let voices = [];
@@ -72,6 +83,11 @@ function loadState() {
 function saveState() {
   if (!learner) return;
   localStorage.setItem(storageKeyForLearner(learner), JSON.stringify(state));
+}
+
+function markActivity() {
+  const day = new Date().toISOString().slice(0, 10);
+  if (!state.activityDays.includes(day)) state.activityDays.push(day);
 }
 
 function showView(name) {
@@ -123,6 +139,36 @@ function certificateStatus() {
   };
 }
 
+function calcGamification() {
+  const topics = Object.keys(state.topicsDone).length;
+  const exercises = Object.keys(state.exercises).filter((k) => k.includes(":e-done:") && state.exercises[k]).length;
+  const stories = (state.stories || []).length;
+  const testimonial = (state.testimonial || "").trim().length >= 30 ? 1 : 0;
+  const xp = topics * 50 + exercises * 10 + stories * 40 + testimonial * 100;
+  const level = Math.max(1, Math.floor(xp / 300) + 1);
+  const badges = [];
+  if (topics >= 10) badges.push("Topic Closer");
+  if (topics >= TOPIC_INDEX.length) badges.push("Journey Finisher");
+  if (stories >= 1) badges.push("Story Contributor");
+  if (stories >= 5) badges.push("Community Mentor");
+  if (testimonial) badges.push("Voice of Impact");
+  return { xp, level, badges };
+}
+
+function calcStreak() {
+  const days = [...(state.activityDays || [])].sort();
+  if (!days.length) return 0;
+  let streak = 1;
+  for (let i = days.length - 1; i > 0; i--) {
+    const cur = new Date(days[i]);
+    const prev = new Date(days[i - 1]);
+    const diff = (cur - prev) / 86400000;
+    if (diff === 1) streak += 1;
+    else if (diff > 1) break;
+  }
+  return streak;
+}
+
 function renderSidebar() {
   chapterList.innerHTML = "";
   const query = (state.search || "").trim().toLowerCase();
@@ -149,7 +195,9 @@ function renderStats() {
   const completed = Object.keys(state.topicsDone).length;
   const pct = Math.round((completed / totalTopics) * 100);
   const chaptersComplete = JOURNEY_DATA.filter((_c, i) => isChapterComplete(i)).length;
-  journeyStats.innerHTML = `<div class="stat-chip">Progress: ${completed}/${totalTopics} topics</div><div class="stat-chip">Completion: ${pct}%</div><div class="stat-chip">Chapters complete: ${chaptersComplete}/${JOURNEY_DATA.length}</div><div class="progress-wrap"><div class="progress-bar" style="width:${pct}%"></div></div>`;
+  const g = calcGamification();
+  const streak = calcStreak();
+  journeyStats.innerHTML = `<div class="stat-chip">Progress: ${completed}/${totalTopics} topics</div><div class="stat-chip">Completion: ${pct}%</div><div class="stat-chip">Chapters complete: ${chaptersComplete}/${JOURNEY_DATA.length}</div><div class="stat-chip">XP: ${g.xp}</div><div class="stat-chip">Level: ${g.level}</div><div class="stat-chip">Streak: ${streak} day(s)</div><div class="stat-chip">Badges: ${g.badges.length ? g.badges.join(", ") : "Earn your first badge"}</div><div class="progress-wrap"><div class="progress-bar" style="width:${pct}%"></div></div>`;
 }
 
 function renderTopic() {
@@ -302,8 +350,10 @@ function renderCertificate() {
 
   saveTestimonialBtn.addEventListener("click", () => {
     state.testimonial = testimonialInput.value || "";
+    markActivity();
     saveState();
     renderCertificate();
+    renderStats();
   });
   downloadCertificateBtn.addEventListener("click", () => {
     if (!certificateStatus().ready) return;
@@ -360,6 +410,12 @@ function renderPortal() {
   renderRecap();
   renderCertificate();
   renderButtons();
+  renderStories();
+  tabLearning.classList.toggle("active-tab", state.activeTab === "learning");
+  tabSharing.classList.toggle("active-tab", state.activeTab === "sharing");
+  const learningOnly = document.querySelectorAll(".learning-only");
+  learningOnly.forEach((el) => el.classList.toggle("hidden", state.activeTab !== "learning"));
+  sharingSection.classList.toggle("hidden", state.activeTab !== "sharing");
 }
 
 function bootPortal() {
@@ -402,6 +458,8 @@ registerForm.addEventListener("submit", (e) => {
   learner = profile;
   saveProfile(profile);
   state = loadState();
+  markActivity();
+  saveState();
   bootPortal();
 });
 
@@ -425,12 +483,14 @@ markDoneBtn.addEventListener("click", () => {
   const { chapterIndex, topicIndex } = activePointers();
   if (!topicIsLearningReady(chapterIndex, topicIndex).ready) return;
   state.topicsDone[`${chapterIndex}:${topicIndex}`] = true;
+  markActivity();
   saveState();
   renderPortal();
 });
 
 focusBtn.addEventListener("click", () => {
   state.focusMode = !state.focusMode;
+  markActivity();
   saveState();
   renderPortal();
 });
@@ -444,6 +504,7 @@ chapterSearch.addEventListener("input", (e) => {
 resetBtn.addEventListener("click", () => {
   if (!window.confirm("Reset all progress, answers, and exercise notes for this registered learner?")) return;
   state = { ...defaultState };
+  markActivity();
   saveState();
   renderPortal();
 });
@@ -466,6 +527,71 @@ pauseAudioBtn.addEventListener("click", () => {
 
 stopAudioBtn.addEventListener("click", () => {
   if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+});
+
+tabLearning.addEventListener("click", () => {
+  state.activeTab = "learning";
+  saveState();
+  renderPortal();
+});
+tabSharing.addEventListener("click", () => {
+  state.activeTab = "sharing";
+  saveState();
+  renderPortal();
+});
+
+JOURNEY_DATA.forEach((ch) => {
+  const opt = document.createElement("option");
+  opt.value = String(ch.chapter);
+  opt.textContent = `Chapter ${ch.chapter}: ${ch.title}`;
+  storyChapter.appendChild(opt);
+});
+
+function renderStories() {
+  const stories = state.stories || [];
+  if (!stories.length) {
+    storyList.innerHTML = "<div class='story-meta'>No stories yet. Be the first to share.</div>";
+    return;
+  }
+  storyList.innerHTML = stories
+    .slice()
+    .reverse()
+    .map((s) => `<article class="story-card">${s.photo ? `<img class="story-photo" src="${s.photo}" alt="Reader photo">` : ""}<div class="story-meta">Chapter ${s.chapter} | ${escapeHtml(s.company || "Individual")} | ${escapeHtml(s.role || "Learner")}</div><strong>${escapeHtml(s.insight)}</strong><p>${escapeHtml(s.story)}</p><div class="story-meta">By ${escapeHtml(s.name)} on ${escapeHtml(s.date)}</div></article>`)
+    .join("");
+}
+
+storyForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const text = (storyText.value || "").trim();
+  const insight = (storyInsight.value || "").trim();
+  if (text.length < 30 || insight.length < 8) {
+    alert("Please add a meaningful insight and story (minimum 30 characters).");
+    return;
+  }
+  const post = (photoData) => {
+    state.stories.push({
+      chapter: Number(storyChapter.value || 1),
+      company: storyCompany.value || "",
+      role: storyRole.value || "",
+      insight,
+      story: text,
+      photo: photoData || "",
+      name: learner?.name || "Reader",
+      date: new Date().toLocaleDateString()
+    });
+    markActivity();
+    saveState();
+    storyForm.reset();
+    renderStories();
+    renderStats();
+    state.activeTab = "sharing";
+    renderPortal();
+  };
+  const file = storyPhoto.files && storyPhoto.files[0];
+  if (!file) return post("");
+  const reader = new FileReader();
+  reader.onload = () => post(String(reader.result || ""));
+  reader.readAsDataURL(file);
 });
 
 if ("speechSynthesis" in window) window.speechSynthesis.onvoiceschanged = loadVoices;
