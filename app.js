@@ -53,6 +53,24 @@ const defaultState = { current: 0, topicsDone: {}, answers: {}, exercises: {}, f
 let learner = null;
 let state = { ...defaultState };
 let voices = [];
+let sharedStoriesCache = [];
+let cloudClient = null;
+let cloudSyncTimer = null;
+
+function initCloud() {
+  try {
+    const cfg = window.KB_CONFIG || {};
+    if (!cfg.supabaseUrl || !cfg.supabaseAnonKey || !window.supabase) return null;
+    cloudClient = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
+    return cloudClient;
+  } catch {
+    return null;
+  }
+}
+
+function cloudReady() {
+  return Boolean(cloudClient);
+}
 
 function storageKeyForLearner(profile) {
   const id = `${profile.email}`.toLowerCase().trim() + "|" + `${profile.phone}`.replace(/\s+/g, "");
@@ -83,6 +101,56 @@ function loadState() {
 function saveState() {
   if (!learner) return;
   localStorage.setItem(storageKeyForLearner(learner), JSON.stringify(state));
+  scheduleCloudSync();
+}
+
+function scheduleCloudSync() {
+  if (!cloudReady() || !learner) return;
+  if (cloudSyncTimer) clearTimeout(cloudSyncTimer);
+  cloudSyncTimer = setTimeout(() => {
+    cloudSyncProgress();
+  }, 500);
+}
+
+async function cloudEnsureLearner() {
+  if (!cloudReady() || !learner) return;
+  await cloudClient.from("kb_learners").upsert({
+    email: learner.email.toLowerCase(),
+    phone: learner.phone,
+    name: learner.name,
+    updated_at: new Date().toISOString()
+  }, { onConflict: "email" });
+}
+
+async function cloudSyncProgress() {
+  if (!cloudReady() || !learner) return;
+  await cloudEnsureLearner();
+  await cloudClient.from("kb_progress").upsert({
+    email: learner.email.toLowerCase(),
+    phone: learner.phone,
+    state_json: state,
+    updated_at: new Date().toISOString()
+  }, { onConflict: "email" });
+}
+
+async function cloudLoadProgress() {
+  if (!cloudReady() || !learner) return null;
+  const { data } = await cloudClient
+    .from("kb_progress")
+    .select("state_json")
+    .eq("email", learner.email.toLowerCase())
+    .maybeSingle();
+  return data?.state_json || null;
+}
+
+async function cloudLoadStories() {
+  if (!cloudReady()) return [];
+  const { data } = await cloudClient
+    .from("kb_stories")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(100);
+  return data || [];
 }
 
 function markActivity() {
@@ -197,7 +265,7 @@ function renderStats() {
   const chaptersComplete = JOURNEY_DATA.filter((_c, i) => isChapterComplete(i)).length;
   const g = calcGamification();
   const streak = calcStreak();
-  journeyStats.innerHTML = `<div class="stat-chip">Progress: ${completed}/${totalTopics} topics</div><div class="stat-chip">Completion: ${pct}%</div><div class="stat-chip">Chapters complete: ${chaptersComplete}/${JOURNEY_DATA.length}</div><div class="stat-chip">XP: ${g.xp}</div><div class="stat-chip">Level: ${g.level}</div><div class="stat-chip">Streak: ${streak} day(s)</div><div class="stat-chip">Badges: ${g.badges.length ? g.badges.join(", ") : "Earn your first badge"}</div><div class="progress-wrap"><div class="progress-bar" style="width:${pct}%"></div></div>`;
+  journeyStats.innerHTML = `<div class="stat-chip">Progress: ${completed}/${totalTopics} topics</div><div class="stat-chip">Completion: ${pct}%</div><div class="stat-chip">Chapters complete: ${chaptersComplete}/${JOURNEY_DATA.length}</div><div class="stat-chip">XP: ${g.xp}</div><div class="stat-chip">Level: ${g.level}</div><div class="stat-chip">Streak: ${streak} day(s)</div><div class="stat-chip">Badges: ${g.badges.length ? g.badges.join(", ") : "Earn your first badge"}</div><div class="stat-chip">Cloud Sync: ${cloudReady() ? "On" : "Local only"}</div><div class="progress-wrap"><div class="progress-bar" style="width:${pct}%"></div></div>`;
 }
 
 function renderTopic() {
@@ -418,9 +486,14 @@ function renderPortal() {
   sharingSection.classList.toggle("hidden", state.activeTab !== "sharing");
 }
 
-function bootPortal() {
+async function bootPortal() {
   showView("portal");
   loadVoices();
+  if (cloudReady() && learner) {
+    const cloudState = await cloudLoadProgress();
+    if (cloudState) state = { ...defaultState, ...cloudState };
+    sharedStoriesCache = await cloudLoadStories();
+  }
   renderPortal();
 }
 
@@ -429,11 +502,11 @@ function validPhone(phone) {
   return digits.length >= 10;
 }
 
-enterPortalCard.addEventListener("click", () => {
+enterPortalCard.addEventListener("click", async () => {
   learner = loadProfile();
   if (learner) {
     state = loadState();
-    bootPortal();
+    await bootPortal();
   } else {
     showView("register");
   }
@@ -442,7 +515,7 @@ enterPortalCard.addEventListener("keydown", (e) => {
   if (e.key === "Enter" || e.key === " ") enterPortalCard.click();
 });
 
-registerForm.addEventListener("submit", (e) => {
+registerForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const form = new FormData(registerForm);
   const profile = {
@@ -460,7 +533,8 @@ registerForm.addEventListener("submit", (e) => {
   state = loadState();
   markActivity();
   saveState();
-  bootPortal();
+  await cloudEnsureLearner();
+  await bootPortal();
 });
 
 prevTopicBtn.addEventListener("click", () => {
@@ -548,7 +622,7 @@ JOURNEY_DATA.forEach((ch) => {
 });
 
 function renderStories() {
-  const stories = state.stories || [];
+  const stories = cloudReady() ? sharedStoriesCache : (state.stories || []);
   if (!stories.length) {
     storyList.innerHTML = "<div class='story-meta'>No stories yet. Be the first to share.</div>";
     return;
@@ -556,11 +630,11 @@ function renderStories() {
   storyList.innerHTML = stories
     .slice()
     .reverse()
-    .map((s) => `<article class="story-card">${s.photo ? `<img class="story-photo" src="${s.photo}" alt="Reader photo">` : ""}<div class="story-meta">Chapter ${s.chapter} | ${escapeHtml(s.company || "Individual")} | ${escapeHtml(s.role || "Learner")}</div><strong>${escapeHtml(s.insight)}</strong><p>${escapeHtml(s.story)}</p><div class="story-meta">By ${escapeHtml(s.name)} on ${escapeHtml(s.date)}</div></article>`)
+    .map((s) => `<article class="story-card">${s.photo ? `<img class="story-photo" src="${s.photo}" alt="Reader photo">` : ""}<div class="story-meta">Chapter ${s.chapter} | ${escapeHtml(s.company || "Individual")} | ${escapeHtml(s.role || "Learner")}</div><strong>${escapeHtml(s.insight)}</strong><p>${escapeHtml(s.story)}</p><div class="story-meta">By ${escapeHtml(s.name)} on ${escapeHtml(s.date || s.created_at || "")}</div></article>`)
     .join("");
 }
 
-storyForm.addEventListener("submit", (e) => {
+storyForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const text = (storyText.value || "").trim();
   const insight = (storyInsight.value || "").trim();
@@ -568,8 +642,8 @@ storyForm.addEventListener("submit", (e) => {
     alert("Please add a meaningful insight and story (minimum 30 characters).");
     return;
   }
-  const post = (photoData) => {
-    state.stories.push({
+  const post = async (photoData) => {
+    const payload = {
       chapter: Number(storyChapter.value || 1),
       company: storyCompany.value || "",
       role: storyRole.value || "",
@@ -578,7 +652,17 @@ storyForm.addEventListener("submit", (e) => {
       photo: photoData || "",
       name: learner?.name || "Reader",
       date: new Date().toLocaleDateString()
-    });
+    };
+    if (cloudReady()) {
+      await cloudClient.from("kb_stories").insert({
+        ...payload,
+        email: learner?.email?.toLowerCase() || "",
+        created_at: new Date().toISOString()
+      });
+      sharedStoriesCache = await cloudLoadStories();
+    } else {
+      state.stories.push(payload);
+    }
     markActivity();
     saveState();
     storyForm.reset();
@@ -588,11 +672,14 @@ storyForm.addEventListener("submit", (e) => {
     renderPortal();
   };
   const file = storyPhoto.files && storyPhoto.files[0];
-  if (!file) return post("");
+  if (!file) return await post("");
   const reader = new FileReader();
-  reader.onload = () => post(String(reader.result || ""));
+  reader.onload = async () => {
+    await post(String(reader.result || ""));
+  };
   reader.readAsDataURL(file);
 });
 
 if ("speechSynthesis" in window) window.speechSynthesis.onvoiceschanged = loadVoices;
+initCloud();
 showView("landing");
