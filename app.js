@@ -1,15 +1,27 @@
-const STORAGE_KEY = "endbusyness-learning-progress-v1";
+const PROFILE_KEY = "kb-learner-profile-v1";
+
+const landingView = document.getElementById("landingView");
+const registerView = document.getElementById("registerView");
+const portalView = document.getElementById("portalView");
+const enterPortalCard = document.getElementById("enterPortalCard");
+const registerForm = document.getElementById("registerForm");
+const registerError = document.getElementById("registerError");
+const learnerBadge = document.getElementById("learnerBadge");
 
 const chapterList = document.getElementById("chapterList");
 const journeyStats = document.getElementById("journeyStats");
 const topicCard = document.getElementById("topicCard");
 const qaSection = document.getElementById("qaSection");
 const exerciseSection = document.getElementById("exerciseSection");
+const recapSection = document.getElementById("recapSection");
+const learningNudge = document.getElementById("learningNudge");
+const chapterSearch = document.getElementById("chapterSearch");
 
 const prevTopicBtn = document.getElementById("prevTopic");
 const nextTopicBtn = document.getElementById("nextTopic");
 const markDoneBtn = document.getElementById("markTopicDone");
 const resetBtn = document.getElementById("resetBtn");
+const focusBtn = document.getElementById("focusBtn");
 const voiceSelect = document.getElementById("voiceSelect");
 const rateSelect = document.getElementById("rateSelect");
 const playAudioBtn = document.getElementById("playAudio");
@@ -25,26 +37,46 @@ JOURNEY_DATA.forEach((chapter, chapterIndex) => {
   chapter.topics.forEach((_, topicIndex) => TOPIC_INDEX.push({ chapterIndex, topicIndex }));
 });
 
-const defaultState = {
-  current: 0,
-  topicsDone: {},
-  answers: {},
-  exercises: {}
-};
+const defaultState = { current: 0, topicsDone: {}, answers: {}, exercises: {}, focusMode: false, search: "" };
+let learner = null;
+let state = { ...defaultState };
+let voices = [];
+
+function storageKeyForLearner(profile) {
+  const id = `${profile.email}`.toLowerCase().trim() + "|" + `${profile.phone}`.replace(/\s+/g, "");
+  return `kb-progress-${id}`;
+}
+
+function saveProfile(profile) {
+  localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+}
+
+function loadProfile() {
+  try {
+    return JSON.parse(localStorage.getItem(PROFILE_KEY) || "null");
+  } catch {
+    return null;
+  }
+}
 
 function loadState() {
+  if (!learner) return { ...defaultState };
   try {
-    return { ...defaultState, ...JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}") };
+    return { ...defaultState, ...JSON.parse(localStorage.getItem(storageKeyForLearner(learner)) || "{}") };
   } catch {
     return { ...defaultState };
   }
 }
 
-let state = loadState();
-let voices = [];
-
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  if (!learner) return;
+  localStorage.setItem(storageKeyForLearner(learner), JSON.stringify(state));
+}
+
+function showView(name) {
+  landingView.classList.toggle("hidden", name !== "landing");
+  registerView.classList.toggle("hidden", name !== "register");
+  portalView.classList.toggle("hidden", name !== "portal");
 }
 
 function keyFor(chapterIndex, topicIndex, kind, idx) {
@@ -55,29 +87,38 @@ function activePointers() {
   return TOPIC_INDEX[state.current];
 }
 
+function chapterDoneCount(chapterIndex) {
+  const chapter = JOURNEY_DATA[chapterIndex];
+  return chapter.topics.reduce((count, _t, tIdx) => count + (state.topicsDone[`${chapterIndex}:${tIdx}`] ? 1 : 0), 0);
+}
+
+function isChapterComplete(chapterIndex) {
+  return chapterDoneCount(chapterIndex) === JOURNEY_DATA[chapterIndex].topics.length;
+}
+
+function topicIsLearningReady(chapterIndex, topicIndex) {
+  const chapter = JOURNEY_DATA[chapterIndex];
+  const answerCount = chapter.questions.filter((_q, i) => ((state.answers[keyFor(chapterIndex, topicIndex, "q", i)] || "").trim().length >= 20)).length;
+  const exerciseDone = chapter.exercises.some((_e, i) => Boolean(state.exercises[keyFor(chapterIndex, topicIndex, "e-done", i)]));
+  return { answerCount, answerTarget: chapter.questions.length, exerciseDone, ready: answerCount >= Math.min(1, chapter.questions.length) && exerciseDone };
+}
+
 function renderSidebar() {
   chapterList.innerHTML = "";
+  const query = (state.search || "").trim().toLowerCase();
   JOURNEY_DATA.forEach((chapter, cIdx) => {
+    const haystack = [`chapter ${chapter.chapter}`, chapter.title, ...chapter.topics].join(" ").toLowerCase();
+    if (query && !haystack.includes(query)) return;
     const btn = document.createElement("button");
     btn.className = "chapter-btn";
-
-    const active = TOPIC_INDEX[state.current].chapterIndex === cIdx;
-    if (active) btn.classList.add("active");
-
-    const doneCount = chapter.topics.reduce((count, _t, tIdx) => {
-      return count + (state.topicsDone[`${cIdx}:${tIdx}`] ? 1 : 0);
-    }, 0);
-
-    btn.innerHTML = `
-      <strong>Chapter ${chapter.chapter}: ${chapter.title}</strong>
-      <div class="topic-line">${doneCount}/${chapter.topics.length} topics complete</div>
-      <div class="topic-line">Open chapter PDF</div>
-    `;
+    if (TOPIC_INDEX[state.current].chapterIndex === cIdx) btn.classList.add("active");
+    if (isChapterComplete(cIdx)) btn.classList.add("complete");
+    const doneCount = chapterDoneCount(cIdx);
+    btn.innerHTML = `<strong>Chapter ${chapter.chapter}: ${chapter.title}</strong><div class="topic-line">${doneCount}/${chapter.topics.length} topics complete</div><div class="topic-line">${isChapterComplete(cIdx) ? "Chapter complete" : "In progress"}</div>`;
     btn.addEventListener("click", () => {
-      const firstTopicAbs = TOPIC_INDEX.findIndex((x) => x.chapterIndex === cIdx);
-      state.current = firstTopicAbs;
+      state.current = TOPIC_INDEX.findIndex((x) => x.chapterIndex === cIdx);
       saveState();
-      render();
+      renderPortal();
     });
     chapterList.appendChild(btn);
   });
@@ -87,35 +128,24 @@ function renderStats() {
   const totalTopics = TOPIC_INDEX.length;
   const completed = Object.keys(state.topicsDone).length;
   const pct = Math.round((completed / totalTopics) * 100);
-  journeyStats.innerHTML = `
-    <div class="stat-chip">Progress: ${completed}/${totalTopics} topics</div>
-    <div class="stat-chip">Completion: ${pct}%</div>
-  `;
+  const chaptersComplete = JOURNEY_DATA.filter((_c, i) => isChapterComplete(i)).length;
+  journeyStats.innerHTML = `<div class="stat-chip">Progress: ${completed}/${totalTopics} topics</div><div class="stat-chip">Completion: ${pct}%</div><div class="stat-chip">Chapters complete: ${chaptersComplete}/${JOURNEY_DATA.length}</div><div class="progress-wrap"><div class="progress-bar" style="width:${pct}%"></div></div>`;
 }
 
 function renderTopic() {
   const { chapterIndex, topicIndex } = activePointers();
   const chapter = JOURNEY_DATA[chapterIndex];
   const topic = chapter.topics[topicIndex];
-  const doneKey = `${chapterIndex}:${topicIndex}`;
-  const isDone = Boolean(state.topicsDone[doneKey]);
-
-  topicCard.innerHTML = `
-    <h2>Topic ${topicIndex + 1}: ${topic}</h2>
-    <div class="chapter-tag">Chapter ${chapter.chapter}: ${chapter.title}</div>
-    <p><a href="${chapter.pdf}" target="_blank" rel="noopener">Open chapter reading PDF</a></p>
-    ${isDone ? '<div class="done-mark">This topic is complete.</div>' : ""}
-  `;
-  if (audioPlayer && chapter.audio) {
-    audioPlayer.src = chapter.audio;
-  }
+  const isDone = Boolean(state.topicsDone[`${chapterIndex}:${topicIndex}`]);
+  const readiness = topicIsLearningReady(chapterIndex, topicIndex);
+  topicCard.innerHTML = `<h2>Topic ${topicIndex + 1}: ${topic}</h2><div class="chapter-tag">Chapter ${chapter.chapter}: ${chapter.title}</div><p><a href="${chapter.pdf}" target="_blank" rel="noopener">Open chapter reading PDF</a></p><div class="topic-meta"><span class="meta-chip">Reflect answers: ${readiness.answerCount}/${readiness.answerTarget}</span><span class="meta-chip">Exercise: ${readiness.exerciseDone ? "Done" : "Pending"}</span><span class="meta-chip">Audio: ${chapter.audio ? "Available" : "Not available"}</span></div>${isDone ? '<div class="done-mark">This topic is complete.</div>' : ""}${!readiness.ready ? '<div class="rule-note">To complete this topic: submit at least one reflection answer and mark one exercise complete.</div>' : ""}`;
+  if (audioPlayer && chapter.audio) audioPlayer.src = chapter.audio;
 }
 
 function renderQuestions() {
   const { chapterIndex, topicIndex } = activePointers();
   const chapter = JOURNEY_DATA[chapterIndex];
   qaSection.innerHTML = "<h3>Reflection Questions</h3>";
-
   chapter.questions.forEach((q, i) => {
     const node = questionTemplate.content.firstElementChild.cloneNode(true);
     node.querySelector("label").textContent = q;
@@ -125,6 +155,7 @@ function renderQuestions() {
     textarea.addEventListener("input", (e) => {
       state.answers[key] = e.target.value;
       saveState();
+      renderButtons();
     });
     qaSection.appendChild(node);
   });
@@ -134,7 +165,6 @@ function renderExercises() {
   const { chapterIndex, topicIndex } = activePointers();
   const chapter = JOURNEY_DATA[chapterIndex];
   exerciseSection.innerHTML = "<h3>Exercises</h3>";
-
   chapter.exercises.forEach((item, i) => {
     const node = exerciseTemplate.content.firstElementChild.cloneNode(true);
     node.querySelector(".exercise-title").textContent = `Exercise ${i + 1}`;
@@ -143,10 +173,8 @@ function renderExercises() {
     const checkbox = node.querySelector("input[type='checkbox']");
     const noteKey = keyFor(chapterIndex, topicIndex, "e-note", i);
     const doneKey = keyFor(chapterIndex, topicIndex, "e-done", i);
-
     textarea.value = state.exercises[noteKey] || "";
     checkbox.checked = Boolean(state.exercises[doneKey]);
-
     textarea.addEventListener("input", (e) => {
       state.exercises[noteKey] = e.target.value;
       saveState();
@@ -154,24 +182,49 @@ function renderExercises() {
     checkbox.addEventListener("change", (e) => {
       state.exercises[doneKey] = e.target.checked;
       saveState();
+      renderButtons();
+      renderNudge();
     });
-
     exerciseSection.appendChild(node);
   });
+}
+
+function renderNudge() {
+  const { chapterIndex, topicIndex } = activePointers();
+  const readiness = topicIsLearningReady(chapterIndex, topicIndex);
+  if (state.topicsDone[`${chapterIndex}:${topicIndex}`]) {
+    learningNudge.textContent = "Great work. This topic is complete. Move to the next topic to keep momentum.";
+  } else if (!readiness.exerciseDone) {
+    learningNudge.textContent = "Learning coach: complete one exercise before marking this topic done.";
+  } else if (readiness.answerCount < 1) {
+    learningNudge.textContent = "Learning coach: add at least one reflection answer (20+ chars).";
+  } else {
+    learningNudge.textContent = "You are ready to complete this topic.";
+  }
+}
+
+function renderRecap() {
+  const { chapterIndex } = activePointers();
+  const chapter = JOURNEY_DATA[chapterIndex];
+  const doneCount = chapterDoneCount(chapterIndex);
+  const pending = chapter.topics.map((t, i) => ({ t, i, done: Boolean(state.topicsDone[`${chapterIndex}:${i}`]) })).filter((x) => !x.done).slice(0, 3);
+  recapSection.innerHTML = `<h3>Chapter Recap</h3><div>${doneCount}/${chapter.topics.length} topics complete in this chapter.</div>${pending.length ? `<ul class="recap-list">${pending.map((p) => `<li>Topic ${p.i + 1}: ${p.t}</li>`).join("")}</ul>` : "<div class='done-mark'>All topics complete in this chapter.</div>"}`;
 }
 
 function renderButtons() {
   prevTopicBtn.disabled = state.current === 0;
   nextTopicBtn.disabled = state.current === TOPIC_INDEX.length - 1;
+  const { chapterIndex, topicIndex } = activePointers();
+  const ready = topicIsLearningReady(chapterIndex, topicIndex).ready;
+  markDoneBtn.disabled = !ready && !state.topicsDone[`${chapterIndex}:${topicIndex}`];
+  markDoneBtn.textContent = state.topicsDone[`${chapterIndex}:${topicIndex}`] ? "Topic Completed" : "Complete Topic";
 }
 
 function audioScript() {
   const { chapterIndex, topicIndex } = activePointers();
   const chapter = JOURNEY_DATA[chapterIndex];
   const topic = chapter.topics[topicIndex];
-  const questions = chapter.questions.map((q, i) => `Question ${i + 1}. ${q}`).join(" ");
-  const exercises = chapter.exercises.map((e, i) => `Exercise ${i + 1}. ${e}`).join(" ");
-  return `Chapter ${chapter.chapter}. ${chapter.title}. Topic ${topicIndex + 1}. ${topic}. Reflection questions: ${questions} Exercises: ${exercises}`;
+  return `Chapter ${chapter.chapter}. ${chapter.title}. Topic ${topicIndex + 1}. ${topic}.`;
 }
 
 function loadVoices() {
@@ -193,20 +246,69 @@ function loadVoices() {
   });
 }
 
-function render() {
+function renderPortal() {
+  document.body.classList.toggle("focus-mode", Boolean(state.focusMode));
+  chapterSearch.value = state.search || "";
+  learnerBadge.textContent = learner ? `${learner.name} | ${learner.email}` : "";
+  focusBtn.textContent = state.focusMode ? "Exit Focus" : "Focus Mode";
   renderSidebar();
   renderStats();
   renderTopic();
+  renderNudge();
   renderQuestions();
   renderExercises();
+  renderRecap();
   renderButtons();
 }
+
+function bootPortal() {
+  showView("portal");
+  loadVoices();
+  renderPortal();
+}
+
+function validPhone(phone) {
+  const digits = phone.replace(/\D/g, "");
+  return digits.length >= 10;
+}
+
+enterPortalCard.addEventListener("click", () => {
+  learner = loadProfile();
+  if (learner) {
+    state = loadState();
+    bootPortal();
+  } else {
+    showView("register");
+  }
+});
+enterPortalCard.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" || e.key === " ") enterPortalCard.click();
+});
+
+registerForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const form = new FormData(registerForm);
+  const profile = {
+    name: String(form.get("fullName") || "").trim(),
+    email: String(form.get("email") || "").trim(),
+    phone: String(form.get("phone") || "").trim()
+  };
+  if (!profile.name || !profile.email || !validPhone(profile.phone)) {
+    registerError.textContent = "Please enter valid name, email, and phone number.";
+    return;
+  }
+  registerError.textContent = "";
+  learner = profile;
+  saveProfile(profile);
+  state = loadState();
+  bootPortal();
+});
 
 prevTopicBtn.addEventListener("click", () => {
   if (state.current > 0) {
     state.current -= 1;
     saveState();
-    render();
+    renderPortal();
   }
 });
 
@@ -214,23 +316,35 @@ nextTopicBtn.addEventListener("click", () => {
   if (state.current < TOPIC_INDEX.length - 1) {
     state.current += 1;
     saveState();
-    render();
+    renderPortal();
   }
 });
 
 markDoneBtn.addEventListener("click", () => {
   const { chapterIndex, topicIndex } = activePointers();
+  if (!topicIsLearningReady(chapterIndex, topicIndex).ready) return;
   state.topicsDone[`${chapterIndex}:${topicIndex}`] = true;
   saveState();
-  render();
+  renderPortal();
+});
+
+focusBtn.addEventListener("click", () => {
+  state.focusMode = !state.focusMode;
+  saveState();
+  renderPortal();
+});
+
+chapterSearch.addEventListener("input", (e) => {
+  state.search = e.target.value || "";
+  saveState();
+  renderSidebar();
 });
 
 resetBtn.addEventListener("click", () => {
-  const ok = window.confirm("Reset all progress, answers, and exercise notes?");
-  if (!ok) return;
+  if (!window.confirm("Reset all progress, answers, and exercise notes for this registered learner?")) return;
   state = { ...defaultState };
   saveState();
-  render();
+  renderPortal();
 });
 
 playAudioBtn.addEventListener("click", () => {
@@ -245,20 +359,13 @@ playAudioBtn.addEventListener("click", () => {
 
 pauseAudioBtn.addEventListener("click", () => {
   if (!("speechSynthesis" in window)) return;
-  if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
-    window.speechSynthesis.pause();
-  } else if (window.speechSynthesis.paused) {
-    window.speechSynthesis.resume();
-  }
+  if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) window.speechSynthesis.pause();
+  else if (window.speechSynthesis.paused) window.speechSynthesis.resume();
 });
 
 stopAudioBtn.addEventListener("click", () => {
-  if (!("speechSynthesis" in window)) return;
-  window.speechSynthesis.cancel();
+  if ("speechSynthesis" in window) window.speechSynthesis.cancel();
 });
 
-if ("speechSynthesis" in window) {
-  window.speechSynthesis.onvoiceschanged = loadVoices;
-}
-loadVoices();
-render();
+if ("speechSynthesis" in window) window.speechSynthesis.onvoiceschanged = loadVoices;
+showView("landing");

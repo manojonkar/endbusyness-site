@@ -1,11 +1,12 @@
 :root {
-  --bg: #f5f7fb;
+  --bg: #f3f6ff;
   --panel: #ffffff;
   --ink: #1a2233;
   --muted: #5c667a;
-  --accent: #2f66f3;
+  --accent: #2b59d9;
   --ok: #1f8f52;
   --line: #dfe5f2;
+  --warn: #d48b00;
 }
 
 * { box-sizing: border-box; }
@@ -15,6 +16,75 @@ body {
   color: var(--ink);
   background: var(--bg);
 }
+.hidden { display: none !important; }
+
+.landing-view, .register-view {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+.landing-card, .register-card {
+  width: min(680px, 96vw);
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 16px 44px rgba(44, 73, 146, 0.14);
+}
+.landing-card {
+  text-align: center;
+  cursor: pointer;
+}
+.emblem {
+  display: grid;
+  place-items: center;
+  margin-bottom: 16px;
+}
+.emblem-ring {
+  width: 88px;
+  height: 88px;
+  border: 3px solid #2b59d9;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #eef3ff;
+}
+.emblem-ring span {
+  color: #2b59d9;
+  font-weight: 900;
+  font-size: 32px;
+  letter-spacing: 1px;
+}
+.landing-card h1 {
+  margin: 0;
+  font-size: 36px;
+}
+.tagline {
+  margin: 10px 0 4px;
+  font-size: 22px;
+  color: #2b3f75;
+}
+.tagline-sub { margin: 0; color: var(--muted); }
+.enter-hint {
+  margin-top: 16px;
+  color: var(--accent);
+  font-weight: 700;
+}
+.register-card h2 { margin-top: 0; }
+.register-card form { display: grid; gap: 8px; }
+.register-card input {
+  border: 1px solid #cfd8ea;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 8px;
+}
+.error-text {
+  min-height: 20px;
+  color: #b3261e;
+}
+.focus-mode .nav-panel { display: none; }
+.focus-mode .layout { grid-template-columns: 1fr; }
 
 .topbar {
   display: flex;
@@ -28,6 +98,17 @@ body {
 
 .topbar h1 { margin: 0 0 6px; font-size: 24px; }
 .topbar p { margin: 0; color: var(--muted); }
+.top-actions { display: flex; gap: 8px; }
+.learner-badge {
+  display: inline-flex;
+  align-items: center;
+  background: #eef3ff;
+  color: #2b3f75;
+  border: 1px solid #d6e0fa;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
 
 .layout {
   display: grid;
@@ -41,6 +122,15 @@ body {
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 14px;
+  box-shadow: 0 8px 28px rgba(44, 73, 146, 0.08);
+}
+
+.search {
+  width: 100%;
+  border: 1px solid #cfd8ea;
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
 }
 
 .chapter-list {
@@ -57,8 +147,17 @@ body {
   background: #fbfcff;
   color: var(--ink);
   border-radius: 8px;
-  padding: 8px;
+  padding: 10px;
   cursor: pointer;
+  transition: all .15s ease;
+}
+.chapter-btn:hover {
+  transform: translateY(-1px);
+  border-color: #c5d3f6;
+}
+.chapter-btn.complete {
+  border-color: #b8ead0;
+  background: #f2fff8;
 }
 .chapter-btn.active {
   border-color: var(--accent);
@@ -80,11 +179,33 @@ body {
   margin-bottom: 10px;
 }
 .stat-chip {
-  background: #eff3ff;
+  background: #edf2ff;
   color: #2549af;
   padding: 6px 10px;
   border-radius: 999px;
   font-size: 13px;
+  font-weight: 700;
+}
+.progress-wrap {
+  width: 100%;
+  background: #e8edfb;
+  border-radius: 999px;
+  height: 8px;
+}
+.progress-bar {
+  height: 8px;
+  background: linear-gradient(90deg, #2b59d9, #4d77ed);
+  border-radius: 999px;
+  transition: width .2s ease;
+}
+.learning-nudge {
+  border-left: 4px solid var(--accent);
+  background: #f2f6ff;
+  color: #2b3f75;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 6px 0 12px;
+  font-size: 14px;
 }
 
 .topic-card {
@@ -118,6 +239,21 @@ body {
 
 .topic-card h2 { margin: 0 0 4px; }
 .topic-card .chapter-tag { color: var(--muted); font-size: 14px; }
+.topic-meta {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.meta-chip {
+  font-size: 12px;
+  color: #3c4b70;
+  background: #eef3ff;
+  border: 1px solid #d6e0fa;
+  border-radius: 999px;
+  padding: 4px 8px;
+}
+.rule-note { color: var(--warn); font-size: 13px; margin-top: 8px; }
 
 .qa-section, .exercise-section {
   border: 1px solid var(--line);
@@ -134,6 +270,7 @@ textarea {
   border-radius: 8px;
   padding: 8px;
   font-family: inherit;
+  resize: vertical;
 }
 
 .exercise-title { font-weight: 700; margin-bottom: 4px; }
@@ -167,6 +304,11 @@ button:disabled {
   color: var(--ok);
   font-size: 13px;
   margin-top: 6px;
+}
+.recap-section { margin-bottom: 12px; }
+.recap-list {
+  margin: 8px 0 0;
+  padding-left: 18px;
 }
 
 @media (max-width: 980px) {

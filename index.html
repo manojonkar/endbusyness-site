@@ -3,26 +3,64 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>END BUSYness Learning Journey</title>
+  <title>KILL BUSYness Learning Journey</title>
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
+  <section id="landingView" class="landing-view">
+    <div class="landing-card" id="enterPortalCard" role="button" tabindex="0">
+      <div class="emblem" aria-hidden="true">
+        <div class="emblem-ring">
+          <span>KB</span>
+        </div>
+      </div>
+      <h1>KILL BUSYness Learning Journey</h1>
+      <p class="tagline">From Motion to Meaning</p>
+      <p class="tagline-sub">Reflect. Own. Assert. Run.</p>
+      <p class="enter-hint">Click to enter portal</p>
+    </div>
+  </section>
+
+  <section id="registerView" class="register-view hidden">
+    <div class="register-card">
+      <h2>Free Registration</h2>
+      <p>Open access. Register once to save and track your learning progress over time.</p>
+      <form id="registerForm">
+        <label for="fullName">Full name</label>
+        <input id="fullName" name="fullName" type="text" required placeholder="Your name">
+        <label for="email">Email ID</label>
+        <input id="email" name="email" type="email" required placeholder="name@email.com">
+        <label for="phone">Phone number</label>
+        <input id="phone" name="phone" type="tel" required placeholder="+91...">
+        <button type="submit">Enter Learning Journey</button>
+      </form>
+      <p id="registerError" class="error-text"></p>
+    </div>
+  </section>
+
+  <div id="portalView" class="hidden">
   <header class="topbar">
     <div>
-      <h1>END BUSYness Learning Journey</h1>
+      <h1>KILL BUSYness Learning Journey</h1>
       <p>Study in bite-sized topics, answer questions, and complete exercises.</p>
     </div>
-    <button id="resetBtn" class="ghost">Reset Progress</button>
+    <div class="top-actions">
+      <span id="learnerBadge" class="learner-badge"></span>
+      <button id="focusBtn" class="ghost">Focus Mode</button>
+      <button id="resetBtn" class="ghost">Reset Progress</button>
+    </div>
   </header>
 
   <main class="layout">
     <aside class="panel nav-panel">
       <h2>Journey Map</h2>
+      <input id="chapterSearch" class="search" type="text" placeholder="Search chapter or topic">
       <div id="chapterList" class="chapter-list"></div>
     </aside>
 
     <section class="panel content-panel">
       <div id="journeyStats" class="stats"></div>
+      <div id="learningNudge" class="learning-nudge"></div>
       <article id="topicCard" class="topic-card"></article>
       <section class="panel-lite audio-panel">
         <h3>Audio Lesson</h3>
@@ -44,9 +82,10 @@
       </section>
       <section id="qaSection" class="qa-section"></section>
       <section id="exerciseSection" class="exercise-section"></section>
+      <section id="recapSection" class="panel-lite recap-section"></section>
       <div class="actions">
         <button id="prevTopic">Previous Topic</button>
-        <button id="markTopicDone">Mark Topic Complete</button>
+        <button id="markTopicDone">Complete Topic</button>
         <button id="nextTopic">Next Topic</button>
       </div>
     </section>
@@ -70,5 +109,6 @@
 
   <script src="./data.js"></script>
   <script src="./app.js"></script>
+  </div>
 </body>
 </html>
