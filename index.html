@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>END BUSYness Learning Journey</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>END BUSYness Learning Journey</h1>
+      <p>Study in bite-sized topics, answer questions, and complete exercises.</p>
+    </div>
+    <button id="resetBtn" class="ghost">Reset Progress</button>
+  </header>
+
+  <main class="layout">
+    <aside class="panel nav-panel">
+      <h2>Journey Map</h2>
+      <div id="chapterList" class="chapter-list"></div>
+    </aside>
+
+    <section class="panel content-panel">
+      <div id="journeyStats" class="stats"></div>
+      <article id="topicCard" class="topic-card"></article>
+      <section class="panel-lite audio-panel">
+        <h3>Audio Lesson</h3>
+        <audio id="audioPlayer" controls preload="none"></audio>
+        <div class="audio-controls">
+          <label for="voiceSelect">Voice</label>
+          <select id="voiceSelect"></select>
+          <label for="rateSelect">Speed</label>
+          <select id="rateSelect">
+            <option value="0.85">0.85x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.15">1.15x</option>
+            <option value="1.3">1.3x</option>
+          </select>
+          <button id="playAudio">Play Audio</button>
+          <button id="pauseAudio" class="ghost">Pause</button>
+          <button id="stopAudio" class="ghost">Stop</button>
+        </div>
+      </section>
+      <section id="qaSection" class="qa-section"></section>
+      <section id="exerciseSection" class="exercise-section"></section>
+      <div class="actions">
+        <button id="prevTopic">Previous Topic</button>
+        <button id="markTopicDone">Mark Topic Complete</button>
+        <button id="nextTopic">Next Topic</button>
+      </div>
+    </section>
+  </main>
+
+  <template id="questionTemplate">
+    <div class="qa-item">
+      <label></label>
+      <textarea rows="4" placeholder="Write your answer..."></textarea>
+    </div>
+  </template>
+
+  <template id="exerciseTemplate">
+    <div class="exercise-item">
+      <div class="exercise-title"></div>
+      <p class="exercise-instruction"></p>
+      <textarea rows="5" placeholder="Capture your exercise notes..."></textarea>
+      <label class="checkline"><input type="checkbox"> Exercise completed</label>
+    </div>
+  </template>
+
+  <script src="./data.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
